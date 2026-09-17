@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer, numeric } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -50,8 +50,22 @@ export const notifications = pgTable("notifications", {
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Monetary values are stored as exact decimals, never JavaScript floating point numbers.
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  payment_method: text("payment_method").notNull(),
+  expense_date: text("expense_date").notNull(), // YYYY-MM-DD
+  expense_time: text("expense_time").notNull(), // HH:MM, local user time
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type TaskCompletion = typeof task_completions.$inferSelect;
 export type Quote = typeof quotes.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type Expense = typeof expenses.$inferSelect;

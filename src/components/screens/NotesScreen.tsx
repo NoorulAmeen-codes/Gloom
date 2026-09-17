@@ -291,135 +291,61 @@ export function NotesScreen() {
           </button>
         </div>
       ) : viewMode === "stories" ? (
-        /* Stories View matching Image 1 with vertical slide-down / Y-axis queue */
-        <div className="space-y-4">
-          <div
-            onTouchStart={onTouchStart}
-            onTouchEnd={onTouchEnd}
-            className="relative rounded-3xl overflow-hidden shadow-xl aspect-9/14 sm:aspect-4/5 max-h-[72vh] flex flex-col justify-center items-center text-center p-8 select-none transition-all"
-            style={{
-              backgroundImage: `url(${currentQuote?.background_image_url || PRESET_BACKGROUNDS[0].url})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            {/* Subtle dark gradient overlay so text remains razor sharp */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-black/75 pointer-events-none" />
+  /* Compact scrollable quotes view */
+  <div className="space-y-3">
 
-            {/* Quote Counter indicator top */}
-            <div className="absolute top-4 left-0 right-0 flex justify-center gap-1.5 z-10 px-6">
-              {quotes.map((_, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    setSlideDirection(idx > currentIndex ? "down" : "up");
-                    setCurrentIndex(idx);
-                  }}
-                  className={`h-1 rounded-full cursor-pointer transition-all ${
-                    idx === currentIndex ? "w-8 bg-white" : "w-2 bg-white/40"
-                  }`}
-                />
-              ))}
-            </div>
+    {/* Scrollable Quote Cards */}
+    <div className="max-h-[520px] overflow-y-auto overflow-x-hidden space-y-3 pr-1 scrollbar-none">
 
-            {/* Vertical Slide Hint Pill / Controls */}
-            <div className="absolute top-8 right-4 z-20 flex flex-col gap-1.5">
-              <button
-                onClick={handlePrev}
-                className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs flex items-center justify-center transition-transform active:scale-90 border border-white/20"
-                title="Slide up (Previous)"
-                aria-label="Previous quote"
-              >
-                <ChevronUp className="w-4 h-4 stroke-[2.5]" />
-              </button>
-              <button
-                onClick={handleNext}
-                className="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs flex items-center justify-center transition-transform active:scale-90 border border-white/20"
-                title="Slide down (Next)"
-                aria-label="Next quote"
-              >
-                <ChevronDown className="w-4 h-4 stroke-[2.5]" />
-              </button>
-            </div>
+      {quotes.map((quote) => (
+        <div
+          key={quote.id}
+          className="relative h-[115px] w-full overflow-hidden rounded-2xl shadow-sm"
+          style={{
+            backgroundImage: `url(${quote.background_image_url})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
 
-            {/* Left Nav Arrow Button (from wireframe image) */}
-            <button
-              onClick={handlePrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs flex items-center justify-center transition-transform active:scale-90 border border-white/20"
-              aria-label="Previous quote"
-            >
-              <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
-            </button>
+          {/* Dark overlay */}
+          <div className="absolute inset-0 bg-black/45" />
 
-            {/* Right Nav Arrow Button (from wireframe image) */}
-            <button
-              onClick={handleNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-xs flex items-center justify-center transition-transform active:scale-90 border border-white/20"
-              aria-label="Next quote"
-            >
-              <ChevronRight className="w-6 h-6 stroke-[2.5]" />
-            </button>
+          {/* Quote content */}
+          <div className="relative z-10 flex h-full flex-col justify-center px-5 py-3">
 
-            {/* Quote Body with Y-axis Slide-Down Animation */}
-            <div
-              key={currentQuote?.id}
-              className={`relative z-10 max-w-md mx-auto space-y-4 px-6 animate-in duration-300 ${
-                slideDirection === "down" ? "slide-in-from-top-6" : "slide-in-from-bottom-6"
-              } fade-in`}
-            >
-              <h3 className="text-xl sm:text-2xl font-black text-white leading-snug tracking-tight drop-shadow-md">
-                &ldquo;{currentQuote?.text}&rdquo;
-              </h3>
-              {currentQuote?.author && (
-                <p className="text-sm font-semibold text-white/85 tracking-wide drop-shadow-xs">
-                  — {currentQuote.author}
-                </p>
-              )}
-            </div>
+            <h3 className="text-sm sm:text-base font-bold text-white leading-snug tracking-tight drop-shadow-md line-clamp-3">
+              &ldquo;{quote.text}&rdquo;
+            </h3>
 
-            {/* Bottom mini actions in story */}
-            <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between z-10 text-white/70 text-xs">
-              <span className="font-medium drop-shadow-xs flex items-center gap-1">
-                <span>{currentIndex + 1} of {quotes.length}</span>
-                <span className="text-[10px] opacity-75 hidden sm:inline">(Swipe vertical or use arrows)</span>
-              </span>
-              <button
-                onClick={openAddModal}
-                className="px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-xs text-white font-semibold flex items-center gap-1 transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Quote
-              </button>
-            </div>
-          </div>
+            {quote.author && (
+              <p className="mt-1.5 text-xs font-medium text-white/85 tracking-wide drop-shadow-sm">
+                — {quote.author}
+              </p>
+            )}
 
-          {/* Quick queue switcher / thumbnails below story (Y-axis queue selector) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {quotes.map((q, idx) => (
-              <button
-                key={q.id}
-                onClick={() => {
-                  setSlideDirection(idx > currentIndex ? "down" : "up");
-                  setCurrentIndex(idx);
-                }}
-                className={`relative shrink-0 w-14 h-18 rounded-xl overflow-hidden border-2 transition-transform ${
-                  idx === currentIndex ? "scale-105" : "opacity-60 hover:opacity-100"
-                }`}
-                style={{
-                  borderColor: idx === currentIndex ? "var(--color-primary)" : "transparent",
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={q.background_image_url}
-                  alt={q.author || "Quote"}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
           </div>
         </div>
-      ) : (
-        /* Manage View */
+      ))}
+
+    </div>
+
+    {/* Add Quote Button */}
+    <button
+      onClick={openAddModal}
+      className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+      style={{
+        backgroundColor: "var(--color-primary)",
+        color: "white",
+      }}
+    >
+      <Plus className="w-4 h-4" />
+      Add Quote
+    </button>
+
+  </div>
+) : (
+  /* Manage View */
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold" style={{ color: "var(--color-text-muted)" }}>

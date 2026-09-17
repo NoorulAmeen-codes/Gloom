@@ -135,8 +135,8 @@ export interface UserProfile {
 interface AppContextType {
   user: UserProfile | null;
   themeColors: ThemeColors;
-  activeTab: "home" | "reports" | "notes" | "tasks" | "profile";
-  setActiveTab: (tab: "home" | "reports" | "notes" | "tasks" | "profile") => void;
+  activeTab: "home" | "reports" | "notes" | "tasks" | "expenses" | "profile";
+  setActiveTab: (tab: "home" | "reports" | "notes" | "tasks" | "expenses" | "profile") => void;
   unreadNotifications: number;
   setUnreadNotifications: React.Dispatch<React.SetStateAction<number>>;
   updateColorProperty: (key: keyof ThemeColors, value: string) => void;
@@ -156,7 +156,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [themeColors, setThemeColors] = useState<ThemeColors>(PRESET_THEMES.indigo.colors);
-  const [activeTab, setActiveTab] = useState<"home" | "reports" | "notes" | "tasks" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "reports" | "notes" | "tasks" | "expenses" | "profile">("home");
   const [unreadNotifications, setUnreadNotifications] = useState(2);
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
 

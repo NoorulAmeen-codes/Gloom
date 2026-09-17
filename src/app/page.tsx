@@ -10,6 +10,7 @@ import { ReportsScreen } from "@/components/screens/ReportsScreen";
 import { NotesScreen } from "@/components/screens/NotesScreen";
 import { TasksScreen } from "@/components/screens/TasksScreen";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
+import { ExpensesScreen } from "@/components/screens/ExpensesScreen";
 
 export default function App() {
   const { activeTab } = useApp();
@@ -36,6 +37,7 @@ export default function App() {
           {activeTab === "reports" && <ReportsScreen />}
           {activeTab === "notes" && <NotesScreen />}
           {activeTab === "tasks" && <TasksScreen />}
+          {activeTab === "expenses" && <ExpensesScreen />}
           {activeTab === "profile" && <ProfileScreen />}
         </main>
       </div>

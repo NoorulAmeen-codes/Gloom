@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Check, Clock, CheckCircle2, Circle, Sparkles, Plus, Image as ImageIcon, ArrowRight, PartyPopper } from "lucide-react";
+import { Check, Clock, Sparkles, Plus, Image as ImageIcon, PartyPopper, WalletCards } from "lucide-react";
+import { formatRupees } from "@/lib/expenses";
 import { useApp } from "@/context/AppContext";
 import { PhotoProofModal } from "@/components/PhotoProofModal";
 import { ViewPhotoModal } from "@/components/ViewPhotoModal";
@@ -27,6 +28,8 @@ export function HomeScreen() {
   const [tomorrowDate, setTomorrowDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [allCompleted, setAllCompleted] = useState(false);
+  const [todayExpenseTotal, setTodayExpenseTotal] = useState(0);
+  const [todayExpenseCount, setTodayExpenseCount] = useState(0);
 
   // Photo modal state
   const [proofModalTask, setProofModalTask] = useState<TaskItem | null>(null);
@@ -63,6 +66,18 @@ export function HomeScreen() {
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
+
+  useEffect(() => {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: user?.timezone || undefined, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    fetch(`/api/expenses?date=${today}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        const todayExpenses = data?.expenses || [];
+        setTodayExpenseCount(todayExpenses.length);
+        setTodayExpenseTotal(todayExpenses.reduce((sum: number, expense: { amount: string }) => sum + Number(expense.amount), 0));
+      })
+      .catch(() => undefined);
+  }, [user?.timezone]);
 
   const handleToggleClick = (task: TaskItem) => {
     if (task.is_completed) {
@@ -137,6 +152,28 @@ export function HomeScreen() {
         <p className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
           Let&apos;s make today productive.
         </p>
+      </div>
+
+      {/* Daily expenses widget */}
+      <div
+        className="rounded-3xl p-5 shadow-sm border cursor-pointer active:scale-[0.99] transition-transform"
+        style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
+        onClick={() => setActiveTab("expenses")}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setActiveTab("expenses"); }}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: "var(--color-primary-light)", color: "var(--color-primary)" }}><WalletCards className="w-4 h-4" /></span>
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>Today&apos;s spending</span>
+            </div>
+            <p className="text-2xl font-black" style={{ color: "var(--color-text)" }}>{formatRupees(todayExpenseTotal)}</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{todayExpenseCount} {todayExpenseCount === 1 ? "expense" : "expenses"}</p>
+          </div>
+          <button onClick={(event) => { event.stopPropagation(); setActiveTab("expenses"); window.setTimeout(() => window.dispatchEvent(new Event("gloop:add-expense")), 0); }} className="shrink-0 px-3 py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center gap-1.5" style={{ backgroundColor: "var(--color-primary)" }}><Plus className="w-4 h-4" /> Add</button>
+        </div>
       </div>
 
       {/* Stats Row */}

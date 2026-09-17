@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Home, Calendar, FileText, CheckSquare, User, Sparkles } from "lucide-react";
+import { Sparkles, WalletCards } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
 export function Navigation() {
@@ -92,6 +92,11 @@ export function Navigation() {
           <line x1="9" y1="15" x2="15" y2="15" />
         </svg>
       ),
+    },
+    {
+      id: "expenses" as const,
+      label: "Expenses",
+      icon: (isActive: boolean) => <WalletCards className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={isActive ? 2.4 : 1.8} />,
     },
     {
       id: "profile" as const,
