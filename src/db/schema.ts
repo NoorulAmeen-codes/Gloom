@@ -1,0 +1,57 @@
+import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().default("Alex"),
+  avatar: text("avatar").default(""),
+  timezone: text("timezone").default("America/New_York"),
+  date_format: text("date_format").default("MM/DD/YYYY"),
+  theme: text("theme"), // JSON string of custom color properties
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id"),
+  title: text("title").notNull(),
+  description: text("description").default(""),
+  target_date: text("target_date"), // YYYY-MM-DD for one-time tasks or start reference
+  target_time: text("target_time").default("09:00"),
+  recurrence: text("recurrence").default("daily"), // 'daily', 'weekly', 'custom', 'one-time'
+  recurrence_days: text("recurrence_days"), // JSON array of day numbers: e.g. [0,1,2,3,4,5,6] (0 = Sunday)
+  requires_photo: boolean("requires_photo").default(false).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const task_completions = pgTable("task_completions", {
+  id: serial("id").primaryKey(),
+  task_id: integer("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // 'YYYY-MM-DD'
+  completed_at: timestamp("completed_at").defaultNow().notNull(),
+  image_url: text("image_url"),
+  notes: text("notes"),
+});
+
+export const quotes = pgTable("quotes", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id"),
+  text: text("text").notNull(),
+  author: text("author"),
+  background_image_url: text("background_image_url").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id"),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").default(false).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type User = typeof users.$inferSelect;
+export type Task = typeof tasks.$inferSelect;
+export type TaskCompletion = typeof task_completions.$inferSelect;
+export type Quote = typeof quotes.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
