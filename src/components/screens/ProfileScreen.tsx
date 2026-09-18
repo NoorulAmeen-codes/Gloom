@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, Palette, Globe, Calendar, RefreshCw, Check, Sparkles, LogOut, Sun, Moon, Shield } from "lucide-react";
+import {
+  User,
+  Palette,
+  Globe,
+  Calendar,
+  Check,
+  LogOut,
+} from "lucide-react";
 import { useApp, PRESET_THEMES, ThemeColors } from "@/context/AppContext";
 
 const TIMEZONES = [
@@ -52,7 +59,6 @@ export function ProfileScreen() {
     saveCurrentTheme,
     resetThemeToDefault,
     updateProfile,
-    refreshUser,
   } = useApp();
 
   const [name, setName] = useState(user?.name || "Alex");
@@ -63,7 +69,7 @@ export function ProfileScreen() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [reloadingSeed, setReloadingSeed] = useState(false);
+  
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -84,6 +90,24 @@ export function ProfileScreen() {
       showToast("Profile & settings updated successfully!");
     }
   };
+
+  const handleLogout = async () => {
+  try {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      showToast("Logout failed. Please try again.");
+      return;
+    }
+
+    window.location.href = "/login";
+  } catch (error) {
+    console.error("Logout error:", error);
+    showToast("Unable to logout. Please try again.");
+  }
+};
 
   const handleSaveTheme = async () => {
     setSavingTheme(true);
@@ -106,22 +130,7 @@ export function ProfileScreen() {
     }
   };
 
-  const handleResetSampleData = async () => {
-    if (!confirm("Reset all tasks, quotes, and sample streak data to fresh defaults?")) return;
-    setReloadingSeed(true);
-    try {
-      const res = await fetch("/api/seed", { method: "POST" });
-      if (res.ok) {
-        await refreshUser();
-        showToast("Database refreshed with sample demo data!");
-        window.location.reload();
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setReloadingSeed(false);
-    }
-  };
+  
 
   return (
     <div className="space-y-6 pb-28 lg:pb-12 animate-in fade-in duration-300">
@@ -444,37 +453,44 @@ export function ProfileScreen() {
         </div>
       </form>
 
-      {/* Section 3: Data Management & Reset */}
-      <div
-        className="p-5 rounded-3xl border shadow-sm flex items-center justify-between gap-4"
-        style={{
-          backgroundColor: "var(--color-surface)",
-          borderColor: "var(--color-border)",
-        }}
-      >
-        <div>
-          <h3 className="text-sm font-bold" style={{ color: "var(--color-text)" }}>
-            Sample Demo Data
-          </h3>
-          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-            Reset tasks, history log, streak stats, and motivational quotes to original sample state.
-          </p>
-        </div>
+      {/* Section 3: Account */}
+<div
+  className="p-5 rounded-3xl border shadow-sm flex items-center justify-between gap-4"
+  style={{
+    backgroundColor: "var(--color-surface)",
+    borderColor: "var(--color-border)",
+  }}
+>
+  <div className="min-w-0">
+    <h3
+      className="text-sm font-bold"
+      style={{ color: "var(--color-text)" }}
+    >
+      Account
+    </h3>
 
-        <button
-          onClick={handleResetSampleData}
-          disabled={reloadingSeed}
-          className="px-4 py-2.5 rounded-xl text-xs font-bold border transition-colors hover:opacity-80 shrink-0 inline-flex items-center gap-1.5"
-          style={{
-            backgroundColor: "var(--color-surface-alt)",
-            borderColor: "var(--color-border)",
-            color: "var(--color-danger)",
-          }}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${reloadingSeed ? "animate-spin" : ""}`} />
-          {reloadingSeed ? "Resetting..." : "Reset Data"}
-        </button>
-      </div>
+    <p
+      className="text-xs"
+      style={{ color: "var(--color-text-muted)" }}
+    >
+      Sign out of your Gloop account on this device.
+    </p>
+  </div>
+
+  <button
+    type="button"
+    onClick={handleLogout}
+    className="px-4 py-2.5 rounded-xl text-xs font-bold border transition-colors hover:opacity-80 shrink-0 inline-flex items-center gap-1.5"
+    style={{
+      backgroundColor: "var(--color-surface-alt)",
+      borderColor: "var(--color-border)",
+      color: "var(--color-danger)",
+    }}
+  >
+    <LogOut className="w-3.5 h-3.5" />
+    Logout
+  </button>
+</div>
     </div>
   );
 }

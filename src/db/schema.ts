@@ -1,12 +1,27 @@
-import { pgTable, serial, text, timestamp, boolean, integer, numeric } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  numeric,
+  index,
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+
+  // Login credentials
+  email: text("email").unique(),
+  password_hash: text("password_hash"),
+
+  // Existing profile data
   name: text("name").notNull().default("Alex"),
   avatar: text("avatar").default(""),
   timezone: text("timezone").default("America/New_York"),
   date_format: text("date_format").default("MM/DD/YYYY"),
-  theme: text("theme"), // JSON string of custom color properties
+  theme: text("theme"),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -32,14 +47,24 @@ export const task_completions = pgTable("task_completions", {
   notes: text("notes"),
 });
 
-export const quotes = pgTable("quotes", {
-  id: serial("id").primaryKey(),
-  user_id: integer("user_id"),
-  text: text("text").notNull(),
-  author: text("author"),
-  background_image_url: text("background_image_url").notNull(),
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
+export const quotes = pgTable(
+  "quotes",
+  {
+    id: serial("id").primaryKey(),
+    user_id: integer("user_id"),
+    text: text("text").notNull(),
+    author: text("author"),
+    background_image_url: text("background_image_url").notNull(),
+    sort_order: integer("sort_order").notNull().default(0),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("quotes_user_created_idx").on(
+      table.user_id,
+      table.created_at
+    ),
+  ]
+);
 
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),

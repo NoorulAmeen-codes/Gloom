@@ -4,7 +4,7 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 
 export const metadata: Metadata = {
-  title: "Gloop — Personal Task & Habit Tracker",
+  title: "Gloop",
   description:
     "Mobile-first personal to-do and habit tracker with photo-proof tasks, progress reports, and motivational quotes.",
 

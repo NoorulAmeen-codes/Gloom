@@ -132,8 +132,21 @@ export interface UserProfile {
   theme: string | null;
 }
 
+interface QuoteItem {
+  id: number;
+  text: string;
+  author: string | null;
+  background_image_url: string;
+  created_at: string;
+}
+
 interface AppContextType {
   user: UserProfile | null;
+  isLoading: boolean;
+  quotes: QuoteItem[];
+quotesLoading: boolean;
+refreshQuotes: () => Promise<void>;
+setQuotes: React.Dispatch<React.SetStateAction<QuoteItem[]>>;
   themeColors: ThemeColors;
   activeTab: "home" | "reports" | "notes" | "tasks" | "expenses" | "profile";
   setActiveTab: (tab: "home" | "reports" | "notes" | "tasks" | "expenses" | "profile") => void;
@@ -155,6 +168,9 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [quotes, setQuotes] = useState<QuoteItem[]>([]);
+const [quotesLoading, setQuotesLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [themeColors, setThemeColors] = useState<ThemeColors>(PRESET_THEMES.indigo.colors);
   const [activeTab, setActiveTab] = useState<"home" | "reports" | "notes" | "tasks" | "expenses" | "profile">("home");
   const [unreadNotifications, setUnreadNotifications] = useState(2);
@@ -169,40 +185,93 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const fetchUserData = useCallback(async () => {
-    try {
-      const res = await fetch("/api/user");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          setUser(data.user);
-          if (data.user.theme) {
-            try {
-              const parsed = typeof data.user.theme === "string" ? JSON.parse(data.user.theme) : data.user.theme;
-              const merged = { ...PRESET_THEMES.indigo.colors, ...parsed };
-              setThemeColors(merged);
-              applyColorsToDocument(merged);
-            } catch {
-              applyColorsToDocument(PRESET_THEMES.indigo.colors);
-            }
-          } else {
-            applyColorsToDocument(PRESET_THEMES.indigo.colors);
-          }
-        }
-      }
+  const refreshQuotes = useCallback(async () => {
+  setQuotesLoading(true);
 
-      // Check unread notifications count
-      const notifRes = await fetch("/api/notifications");
+  try {
+    const res = await fetch("/api/quotes", {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("Failed to load quotes:", res.status);
+      return;
+    }
+
+    const data = await res.json();
+    setQuotes(data.quotes || []);
+  } catch (error) {
+    console.error("Failed to load quotes:", error);
+  } finally {
+    setQuotesLoading(false);
+  }
+}, []);
+
+  const fetchUserData = useCallback(async () => {
+  try {
+    const res = await fetch("/api/user", {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      setIsLoading(false);
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data.user) {
+      setUser(data.user);
+
+      if (data.user.theme) {
+        try {
+          const parsed =
+            typeof data.user.theme === "string"
+              ? JSON.parse(data.user.theme)
+              : data.user.theme;
+
+          const merged = {
+            ...PRESET_THEMES.indigo.colors,
+            ...parsed,
+          };
+
+          setThemeColors(merged);
+          applyColorsToDocument(merged);
+        } catch {
+          applyColorsToDocument(PRESET_THEMES.indigo.colors);
+        }
+      } else {
+        applyColorsToDocument(PRESET_THEMES.indigo.colors);
+      }
+    }
+
+    // The main application can render now.
+    setIsLoading(false);
+
+    // Load quotes in the background.
+    void refreshQuotes();
+
+    // Load notifications in the background.
+    try {
+      const notifRes = await fetch("/api/notifications", {
+        cache: "no-store",
+      });
+
       if (notifRes.ok) {
         const notifData = await notifRes.json();
+
         if (typeof notifData.unreadCount === "number") {
           setUnreadNotifications(notifData.unreadCount);
         }
       }
-    } catch (err) {
-      console.error("Failed to fetch user data:", err);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
     }
-  }, [applyColorsToDocument]);
+  } catch (err) {
+    console.error("Failed to fetch user data:", err);
+    setIsLoading(false);
+  }
+}, [applyColorsToDocument, refreshQuotes]);
 
   useEffect(() => {
     fetchUserData();
@@ -289,6 +358,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         user,
+        isLoading,
+        quotes,
+        quotesLoading,
+        refreshQuotes,
+        setQuotes,
         themeColors,
         activeTab,
         setActiveTab,
