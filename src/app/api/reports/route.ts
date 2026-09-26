@@ -56,9 +56,7 @@ function isTaskActiveOnDate(
 
 export async function GET(request: Request) {
   try {
-    const authStart = Date.now();
-const user = await getCurrentUser();
-console.log("[REPORTS] getCurrentUser:", Date.now() - authStart, "ms");
+    const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json(
@@ -72,18 +70,13 @@ console.log("[REPORTS] getCurrentUser:", Date.now() - authStart, "ms");
     );
 
     // Only load tasks belonging to the logged-in user.
-    const tasksStart = Date.now();
-
     const allTasks = await db
       .select()
       .from(tasks)
       .where(eq(tasks.user_id, user.id));
 
-console.log("[REPORTS] allTasks query:", Date.now() - tasksStart, "ms");
-
     // Completions are linked to tasks, so only load
     // completions belonging to this user's tasks.
-    const completionsStart = Date.now();
     const allCompletions = await db
   .select({
     id: task_completions.id,
@@ -96,7 +89,6 @@ console.log("[REPORTS] allTasks query:", Date.now() - tasksStart, "ms");
     // Do NOT send the actual Base64 image.
     has_photo: sql<boolean>`${task_completions.image_url} IS NOT NULL`,
   })
-  
   .from(task_completions)
   .innerJoin(
     tasks,
@@ -104,20 +96,12 @@ console.log("[REPORTS] allTasks query:", Date.now() - tasksStart, "ms");
   )
   .where(eq(tasks.user_id, user.id))
   .orderBy(desc(task_completions.date));
-  console.log(
-  "[REPORTS] allCompletions query:",
-  Date.now() - completionsStart,
-  "ms",
-  "rows:",
-  allCompletions.length
-);
 
     // Map completions by date -> completions array
     const completionByDate = new Map<
       string,
       typeof allCompletions
     >();
-    
 
     for (const comp of allCompletions) {
       const list =
@@ -148,7 +132,7 @@ console.log("[REPORTS] allTasks query:", Date.now() - tasksStart, "ms");
   notes: string | null;
 }>;
     }> = [];
-    const processingStart = Date.now();
+
     // 90 days lookback
     for (let i = 0; i < 90; i++) {
       const d = new Date(
@@ -216,11 +200,7 @@ console.log("[REPORTS] allTasks query:", Date.now() - tasksStart, "ms");
         items,
       });
     }
-    console.log(
-  "[REPORTS] 90-day processing:",
-  Date.now() - processingStart,
-  "ms"
-);
+
     // Current streak
     let currentStreak = 0;
 

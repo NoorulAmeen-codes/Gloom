@@ -5,16 +5,8 @@ import { eq, asc, desc } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/requireUser";
 
 export async function GET() {
-  const totalStart = Date.now();
-
   try {
-    const userStart = Date.now();
-
     const user = await getCurrentUser();
-
-    console.log(
-      `[QUOTES] getCurrentUser: ${Date.now() - userStart}ms`
-    );
 
     if (!user) {
       return NextResponse.json(
@@ -23,24 +15,28 @@ export async function GET() {
       );
     }
 
-    const quotesStart = Date.now();
-
     const allQuotes = await db
-      .select()
+      .select({
+        id: quotes.id,
+        text: quotes.text,
+        author: quotes.author,
+        sort_order: quotes.sort_order,
+        created_at: quotes.created_at,
+      })
       .from(quotes)
       .where(eq(quotes.user_id, user.id))
-      .orderBy(asc(quotes.sort_order), asc(quotes.created_at));
+      .orderBy(
+        asc(quotes.sort_order),
+        asc(quotes.created_at)
+      );
 
-    console.log(
-      `[QUOTES] database query: ${Date.now() - quotesStart}ms`
-    );
-
-    console.log(
-      `[QUOTES] total: ${Date.now() - totalStart}ms`
-    );
+    const quotesWithImageUrls = allQuotes.map((quote) => ({
+      ...quote,
+      background_image_url: `/api/quotes/${quote.id}/image`,
+    }));
 
     return NextResponse.json({
-      quotes: allQuotes,
+      quotes: quotesWithImageUrls,
     });
   } catch (error) {
     console.error("GET /api/quotes error:", error);

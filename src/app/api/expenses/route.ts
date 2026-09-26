@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, asc, eq, gte, ilike, lte } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { expenses } from "@/db/schema";
 import {
@@ -209,18 +209,18 @@ export async function GET(request: Request) {
       );
     }
 
-    const rows = await db
+        const rows = await db
       .select()
       .from(expenses)
       .where(and(...filters))
       .orderBy(
-        asc(expenses.expense_date),
-        asc(expenses.expense_time),
-        asc(expenses.id)
+        desc(expenses.expense_date),
+        desc(expenses.expense_time),
+        desc(expenses.id)
       );
 
     return NextResponse.json({
-      expenses: rows.reverse(),
+      expenses: rows,
     });
   } catch (error) {
     console.error(

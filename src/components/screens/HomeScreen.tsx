@@ -48,7 +48,7 @@ export function HomeScreen() {
 
   const loadTasks = useCallback(async () => {
     try {
-      const res = await fetch("/api/tasks");
+      const res = await fetch("/api/tasks?scope=today");
       if (res.ok) {
         const data = await res.json();
         setTasks(data.todaysTasks || []);

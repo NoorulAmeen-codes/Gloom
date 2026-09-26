@@ -76,17 +76,28 @@ export const notifications = pgTable("notifications", {
 });
 
 // Monetary values are stored as exact decimals, never JavaScript floating point numbers.
-export const expenses = pgTable("expenses", {
-  id: serial("id").primaryKey(),
-  user_id: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  category: text("category").notNull(),
-  description: text("description"),
-  payment_method: text("payment_method").notNull(),
-  expense_date: text("expense_date").notNull(), // YYYY-MM-DD
-  expense_time: text("expense_time").notNull(), // HH:MM, local user time
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: serial("id").primaryKey(),
+    user_id: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    category: text("category").notNull(),
+    description: text("description"),
+    payment_method: text("payment_method").notNull(),
+    expense_date: text("expense_date").notNull(),
+    expense_time: text("expense_time").notNull(),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("expenses_user_date_idx").on(
+      table.user_id,
+      table.expense_date
+    ),
+  ]
+);
 
 export type User = typeof users.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
