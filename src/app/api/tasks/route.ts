@@ -63,19 +63,34 @@ export async function GET(request: Request) {
     const scope = searchParams.get("scope");
 
     // Only load tasks belonging to the logged-in user.
+    const tasksQueryStart = Date.now();
     const allTasks = await db
       .select()
       .from(tasks)
       .where(eq(tasks.user_id, user.id))
       .orderBy(tasks.target_time, desc(tasks.created_at));
+      console.log(
+  "[TASKS] allTasks query:",
+  Date.now() - tasksQueryStart,
+  "ms"
+);
 
     const taskIds = allTasks.map((task) => task.id);
 
     // Fetch completions only for this user's tasks.
-    const completionsForDate =
+    const todayCompletionsStart = Date.now();
+  const completionsForDate =
       taskIds.length > 0
         ? await db
-            .select()
+            .select({
+  id: task_completions.id,
+  task_id: task_completions.task_id,
+  date: task_completions.date,
+  image_url: task_completions.image_url,
+  notes: task_completions.notes,
+  completed_at: task_completions.completed_at,
+})
+
             .from(task_completions)
             .where(
               and(
@@ -84,11 +99,16 @@ export async function GET(request: Request) {
               )
             )
         : [];
+        console.log(
+  "[TASKS] today completions query:",
+  Date.now() - todayCompletionsStart,
+  "ms"
+);
 
     const completionMap = new Map<
-      number,
-      typeof task_completions.$inferSelect
-    >();
+  number,
+  (typeof completionsForDate)[number]
+>();
 
     for (const comp of completionsForDate) {
       completionMap.set(comp.task_id, comp);
@@ -103,7 +123,7 @@ export async function GET(request: Request) {
           ...task,
           is_completed: !!comp,
           completion_id: comp?.id ?? null,
-          completion_image_url: comp?.image_url ?? null,
+          completion_image_url: null,
           completion_notes: comp?.notes ?? null,
           completed_at: comp?.completed_at ?? null,
         };
@@ -123,12 +143,18 @@ export async function GET(request: Request) {
     const tomorrowDate = getTomorrowString(
       user.timezone || undefined
     );
-
+    const tomorrowCompletionsStart = Date.now();
     const tomorrowCompletions =
       taskIds.length > 0
         ? await db
-            .select()
-            .from(task_completions)
+           .select({
+  id: task_completions.id,
+  task_id: task_completions.task_id,
+  date: task_completions.date,
+  image_url: task_completions.image_url,
+  completed_at: task_completions.completed_at,
+})
+.from(task_completions)
             .where(
               and(
                 eq(task_completions.date, tomorrowDate),
@@ -136,11 +162,16 @@ export async function GET(request: Request) {
               )
             )
         : [];
+        console.log(
+  "[TASKS] tomorrow completions query:",
+  Date.now() - tomorrowCompletionsStart,
+  "ms"
+);
 
     const tomorrowCompMap = new Map<
-      number,
-      typeof task_completions.$inferSelect
-    >();
+  number,
+  (typeof tomorrowCompletions)[number]
+>();
 
     for (const comp of tomorrowCompletions) {
       tomorrowCompMap.set(comp.task_id, comp);
@@ -157,26 +188,79 @@ export async function GET(request: Request) {
           ...task,
           is_completed: !!comp,
           completion_id: comp?.id ?? null,
-          completion_image_url: comp?.image_url ?? null,
+          completion_image_url: null,
         };
       });
 
-    // Get completion statistics only for this user's tasks.
-    const allTasksWithStats = await Promise.all(
-      allTasks.map(async (task) => {
-        const taskComps = await db
-          .select()
-          .from(task_completions)
-          .where(eq(task_completions.task_id, task.id));
+   let allTasksWithStats: Array<
+  (typeof allTasks)[number] & {
+    total_completions: number;
+    latest_completion: {
+      id: number;
+      date: string;
+      completed_at: Date | null;
+      notes: string | null;
+    } | null;
+  }
+> = allTasks.map((task) => ({
+  ...task,
+  total_completions: 0,
+  latest_completion: null,
+}));
+if (scope !== "today" && taskIds.length > 0) {
+  const completionStats = await db
+    .select({
+      task_id: task_completions.task_id,
+      id: task_completions.id,
+      date: task_completions.date,
+      completed_at: task_completions.completed_at,
+      notes: task_completions.notes,
+    })
+    .from(task_completions)
+    .where(inArray(task_completions.task_id, taskIds))
+    .orderBy(desc(task_completions.completed_at));
 
-        return {
-          ...task,
-          total_completions: taskComps.length,
-          latest_completion:
-            taskComps[taskComps.length - 1] ?? null,
-        };
-      })
-    );
+  const statsMap = new Map<
+    number,
+    {
+      total_completions: number;
+      latest_completion: {
+        id: number;
+        date: string;
+        completed_at: Date | null;
+        notes: string | null;
+      } | null;
+    }
+  >();
+
+  for (const completion of completionStats) {
+    const existing = statsMap.get(completion.task_id);
+
+    if (!existing) {
+      statsMap.set(completion.task_id, {
+        total_completions: 1,
+        latest_completion: {
+          id: completion.id,
+          date: completion.date,
+          completed_at: completion.completed_at,
+          notes: completion.notes,
+        },
+      });
+    } else {
+      existing.total_completions += 1;
+    }
+  }
+
+  allTasksWithStats = allTasks.map((task) => {
+    const stats = statsMap.get(task.id);
+
+    return {
+      ...task,
+      total_completions: stats?.total_completions ?? 0,
+      latest_completion: stats?.latest_completion ?? null,
+    };
+  });
+}
 
     return NextResponse.json({
       date: dateParam,
