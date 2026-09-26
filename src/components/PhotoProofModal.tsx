@@ -7,6 +7,7 @@ interface PhotoProofModalProps {
   isOpen: boolean;
   onClose: () => void;
   taskTitle: string;
+  taskDescription?: string | null;
   onConfirm: (imageUrl: string | null, notes: string | null) => Promise<void>;
 }
 
@@ -33,6 +34,7 @@ export function PhotoProofModal({
   isOpen,
   onClose,
   taskTitle,
+  taskDescription,
   onConfirm,
 }: PhotoProofModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -96,6 +98,14 @@ export function PhotoProofModal({
               <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
                 Optional proof for &ldquo;{taskTitle}&rdquo;
               </p>
+              {taskDescription && (
+              <p
+                className="text-xs mt-1 leading-relaxed"
+                style={{ color: "var(--color-text)" }}
+              >
+                {taskDescription}
+              </p>
+            )}
             </div>
           </div>
           <button

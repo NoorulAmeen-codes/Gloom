@@ -1,11 +1,16 @@
 "use client";
 
 import React from "react";
-import { Bell } from "lucide-react";
+import { Bell, Target } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
 export function TopBar() {
-  const { getFormattedToday, unreadNotifications, setNotificationModalOpen } = useApp();
+  const {
+  getFormattedToday,
+  unreadNotifications,
+  setNotificationModalOpen,
+  setActiveTab,
+} = useApp();
 
   return (
     <header
@@ -25,6 +30,19 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <button
+          onClick={() => setActiveTab("goals")}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-transform active:scale-95"
+          style={{
+            backgroundColor: "var(--color-primary-light)",
+            color: "var(--color-primary)",
+            border: "1px solid var(--color-border)",
+          }}
+          aria-label="Goals"
+        >
+          <Target className="w-4 h-4" />
+          <span>Goals</span>
+        </button>
         <button
           onClick={() => setNotificationModalOpen(true)}
           className="relative p-2 rounded-full transition-transform active:scale-95 hover:opacity-80"

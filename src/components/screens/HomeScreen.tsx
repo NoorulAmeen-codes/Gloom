@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Check, Clock, Sparkles, Plus, Image as ImageIcon, PartyPopper, WalletCards } from "lucide-react";
+import {
+  Check,
+  Clock,
+  Sparkles,
+  Plus,
+  Image as ImageIcon,
+  PartyPopper,
+  WalletCards,
+  Target,
+} from "lucide-react";
 import { formatRupees } from "@/lib/expenses";
 import { useApp } from "@/context/AppContext";
 import { PhotoProofModal } from "@/components/PhotoProofModal";
@@ -30,6 +39,11 @@ export function HomeScreen() {
   const [allCompleted, setAllCompleted] = useState(false);
   const [todayExpenseTotal, setTodayExpenseTotal] = useState(0);
   const [todayExpenseCount, setTodayExpenseCount] = useState(0);
+  
+  const [goalStats, setGoalStats] = useState({
+  total: 0,
+  achieved: 0,
+});
 
   // Photo modal state
   const [proofModalTask, setProofModalTask] = useState<TaskItem | null>(null);
@@ -68,37 +82,85 @@ export function HomeScreen() {
   }, [loadTasks]);
 
   useEffect(() => {
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: user?.timezone || undefined, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const loadTodayExpenses = () => {
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: user?.timezone || undefined,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+
     fetch(`/api/expenses?date=${today}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         const todayExpenses = data?.expenses || [];
         setTodayExpenseCount(todayExpenses.length);
-        setTodayExpenseTotal(todayExpenses.reduce((sum: number, expense: { amount: string }) => sum + Number(expense.amount), 0));
+        setTodayExpenseTotal(
+          todayExpenses.reduce(
+            (sum: number, expense: { amount: string }) =>
+              sum + Number(expense.amount),
+            0
+          )
+        );
       })
       .catch(() => undefined);
-  }, [user?.timezone]);
-
-  const handleToggleClick = (task: TaskItem) => {
-    if (task.is_completed) {
-      // Uncheck directly
-      executeToggle(task.id, "uncomplete");
-    } else {
-      // If requires_photo, open photo proof modal
-      if (task.requires_photo) {
-        setProofModalTask(task);
-      } else {
-        executeToggle(task.id, "complete");
-      }
-    }
   };
 
+  loadTodayExpenses();
+
+  window.addEventListener("gloop:expense-updated", loadTodayExpenses);
+
+  return () => {
+    window.removeEventListener(
+      "gloop:expense-updated",
+      loadTodayExpenses
+    );
+  };
+}, [user?.timezone]);
+async function loadGoalStats() {
+  try {
+    const response = await fetch("/api/goals");
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    const loadedGoals = data.goals || [];
+
+    setGoalStats({
+      total: loadedGoals.length,
+      achieved: loadedGoals.filter(
+        (goal: { is_achieved: boolean }) => goal.is_achieved
+      ).length,
+    });
+  } catch (error) {
+    console.error("Failed to load goal stats:", error);
+  }
+}
+useEffect(() => {
+  void loadGoalStats();
+}, []);
+
+  const handleToggleClick = (task: TaskItem) => {
+  // Completed tasks cannot be undone.
+  if (task.is_completed) {
+    return;
+  }
+
+  if (task.requires_photo) {
+    setProofModalTask(task);
+  } else {
+    executeToggle(task.id, "complete");
+  }
+};
+
   const executeToggle = async (
-    taskId: number,
-    action: "complete" | "uncomplete",
-    imageUrl?: string | null,
-    notes?: string | null
-  ) => {
+  taskId: number,
+  action: "complete",
+  imageUrl?: string | null,
+  notes?: string | null
+) => {
     try {
       // Optimistic update
       setTasks((prev) => {
@@ -174,7 +236,9 @@ export function HomeScreen() {
           </div>
           <button onClick={(event) => { event.stopPropagation(); setActiveTab("expenses"); window.setTimeout(() => window.dispatchEvent(new Event("gloop:add-expense")), 0); }} className="shrink-0 px-3 py-2.5 rounded-xl text-xs font-bold text-white inline-flex items-center gap-1.5" style={{ backgroundColor: "var(--color-primary)" }}><Plus className="w-4 h-4" /> Add</button>
         </div>
-      </div>
+            </div>
+
+      
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 gap-4">
@@ -517,6 +581,7 @@ export function HomeScreen() {
         <PhotoProofModal
           isOpen={!!proofModalTask}
           taskTitle={proofModalTask.title}
+          taskDescription={proofModalTask.description}
           onClose={() => setProofModalTask(null)}
           onConfirm={async (imageUrl, notes) => {
             await executeToggle(proofModalTask.id, "complete", imageUrl, notes);

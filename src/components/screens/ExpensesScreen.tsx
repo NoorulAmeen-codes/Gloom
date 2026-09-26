@@ -72,7 +72,9 @@ export function ExpensesScreen() {
       const response = await fetch(editing ? `/api/expenses/${editing.id}` : "/api/expenses", { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await response.json();
       if (!response.ok) { setError(data.error || "Could not save this expense."); return; }
-      setFormOpen(false); await load();
+      setFormOpen(false);
+await load();
+window.dispatchEvent(new Event("gloop:expense-updated"));
     } catch { setError("Could not save this expense. Please try again."); } finally { setSaving(false); }
   }
   async function remove() { if (!deleteTarget) return; const response = await fetch(`/api/expenses/${deleteTarget.id}`, { method: "DELETE" }); if (response.ok) { setDeleteTarget(null); await load(); } else setError("Could not delete this expense."); }

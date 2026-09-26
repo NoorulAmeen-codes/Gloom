@@ -148,8 +148,8 @@ quotesLoading: boolean;
 refreshQuotes: () => Promise<void>;
 setQuotes: React.Dispatch<React.SetStateAction<QuoteItem[]>>;
   themeColors: ThemeColors;
-  activeTab: "home" | "reports" | "notes" | "tasks" | "expenses" | "profile";
-  setActiveTab: (tab: "home" | "reports" | "notes" | "tasks" | "expenses" | "profile") => void;
+  activeTab: "home" | "reports" | "notes" | "tasks" | "expenses" | "goals" | "profile";
+  setActiveTab: (tab: "home" | "reports" | "notes" | "tasks" | "expenses" | "goals" | "profile") => void;
   unreadNotifications: number;
   setUnreadNotifications: React.Dispatch<React.SetStateAction<number>>;
   updateColorProperty: (key: keyof ThemeColors, value: string) => void;
@@ -172,7 +172,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 const [quotesLoading, setQuotesLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [themeColors, setThemeColors] = useState<ThemeColors>(PRESET_THEMES.indigo.colors);
-  const [activeTab, setActiveTab] = useState<"home" | "reports" | "notes" | "tasks" | "expenses" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<
+  "home" | "reports" | "notes" | "tasks" | "expenses" | "goals" | "profile"
+>("home");
   const [unreadNotifications, setUnreadNotifications] = useState(2);
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
 

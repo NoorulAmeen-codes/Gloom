@@ -98,6 +98,7 @@ export function Navigation() {
       label: "Expenses",
       icon: (isActive: boolean) => <WalletCards className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={isActive ? 2.4 : 1.8} />,
     },
+    
     {
       id: "profile" as const,
       label: "Profile",

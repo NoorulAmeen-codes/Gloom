@@ -99,9 +99,45 @@ export const expenses = pgTable(
   ]
 );
 
+export const goal_categories = pgTable(
+  "goal_categories",
+  {
+    id: serial("id").primaryKey(),
+    user_id: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    icon: text("icon").default("🎯"),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("goal_categories_user_idx").on(table.user_id),
+  ]
+);
+
+export const goals = pgTable(
+  "goals",
+  {
+    id: serial("id").primaryKey(),
+    category_id: integer("category_id")
+      .notNull()
+      .references(() => goal_categories.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").default(""),
+    is_achieved: boolean("is_achieved").default(false).notNull(),
+    achieved_at: timestamp("achieved_at"),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("goals_category_idx").on(table.category_id),
+  ]
+);
+
 export type User = typeof users.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type TaskCompletion = typeof task_completions.$inferSelect;
 export type Quote = typeof quotes.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Expense = typeof expenses.$inferSelect;
+export type GoalCategory = typeof goal_categories.$inferSelect;
+export type Goal = typeof goals.$inferSelect;

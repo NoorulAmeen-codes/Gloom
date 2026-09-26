@@ -11,6 +11,7 @@ import { NotesScreen } from "@/components/screens/NotesScreen";
 import { TasksScreen } from "@/components/screens/TasksScreen";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
 import { ExpensesScreen } from "@/components/screens/ExpensesScreen";
+import { GoalsScreen } from "@/components/screens/GoalsScreen";
 
 export default function App() {
   const { activeTab, isLoading } = useApp();
@@ -62,6 +63,9 @@ export default function App() {
 
             <div style={{ display: activeTab === "expenses" ? "block" : "none" }}>
             <ExpensesScreen />
+            </div>
+            <div style={{ display: activeTab === "goals" ? "block" : "none" }}>
+              <GoalsScreen />
             </div>
 
             <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
