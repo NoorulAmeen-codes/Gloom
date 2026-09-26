@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { tasks, task_completions } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/requireUser";
 import { getTodayString } from "@/lib/date-utils";
 
@@ -56,7 +56,9 @@ function isTaskActiveOnDate(
 
 export async function GET(request: Request) {
   try {
-    const user = await getCurrentUser();
+    const authStart = Date.now();
+const user = await getCurrentUser();
+console.log("[REPORTS] getCurrentUser:", Date.now() - authStart, "ms");
 
     if (!user) {
       return NextResponse.json(
@@ -70,35 +72,52 @@ export async function GET(request: Request) {
     );
 
     // Only load tasks belonging to the logged-in user.
+    const tasksStart = Date.now();
+
     const allTasks = await db
       .select()
       .from(tasks)
       .where(eq(tasks.user_id, user.id));
 
+console.log("[REPORTS] allTasks query:", Date.now() - tasksStart, "ms");
+
     // Completions are linked to tasks, so only load
     // completions belonging to this user's tasks.
+    const completionsStart = Date.now();
     const allCompletions = await db
-      .select({
-        id: task_completions.id,
-        task_id: task_completions.task_id,
-        date: task_completions.date,
-        completed_at: task_completions.completed_at,
-        image_url: task_completions.image_url,
-        notes: task_completions.notes,
-      })
-      .from(task_completions)
-      .innerJoin(
-        tasks,
-        eq(task_completions.task_id, tasks.id)
-      )
-      .where(eq(tasks.user_id, user.id))
-      .orderBy(desc(task_completions.date));
+  .select({
+    id: task_completions.id,
+    task_id: task_completions.task_id,
+    date: task_completions.date,
+    completed_at: task_completions.completed_at,
+    notes: task_completions.notes,
+
+    // Only return whether a photo exists.
+    // Do NOT send the actual Base64 image.
+    has_photo: sql<boolean>`${task_completions.image_url} IS NOT NULL`,
+  })
+  
+  .from(task_completions)
+  .innerJoin(
+    tasks,
+    eq(task_completions.task_id, tasks.id)
+  )
+  .where(eq(tasks.user_id, user.id))
+  .orderBy(desc(task_completions.date));
+  console.log(
+  "[REPORTS] allCompletions query:",
+  Date.now() - completionsStart,
+  "ms",
+  "rows:",
+  allCompletions.length
+);
 
     // Map completions by date -> completions array
     const completionByDate = new Map<
       string,
       typeof allCompletions
     >();
+    
 
     for (const comp of allCompletions) {
       const list =
@@ -120,16 +139,16 @@ export async function GET(request: Request) {
       percentage: number;
       isAllCompleted: boolean;
       items: Array<{
-        taskId: number;
-        title: string;
-        description: string;
-        requiresPhoto: boolean;
-        isCompleted: boolean;
-        imageUrl: string | null;
-        notes: string | null;
-      }>;
+  taskId: number;
+  title: string;
+  description: string;
+  requiresPhoto: boolean;
+  isCompleted: boolean;
+  hasPhoto: boolean;
+  notes: string | null;
+}>;
     }> = [];
-
+    const processingStart = Date.now();
     // 90 days lookback
     for (let i = 0; i < 90; i++) {
       const d = new Date(
@@ -162,14 +181,14 @@ export async function GET(request: Request) {
         }
 
         return {
-          taskId: t.id,
-          title: t.title,
-          description: t.description || "",
-          requiresPhoto: t.requires_photo,
-          isCompleted,
-          imageUrl: comp?.image_url ?? null,
-          notes: comp?.notes ?? null,
-        };
+  taskId: t.id,
+  title: t.title,
+  description: t.description || "",
+  requiresPhoto: t.requires_photo,
+  isCompleted,
+  hasPhoto: !!comp?.has_photo,
+  notes: comp?.notes ?? null,
+};
       });
 
       const totalScheduled =
@@ -197,7 +216,11 @@ export async function GET(request: Request) {
         items,
       });
     }
-
+    console.log(
+  "[REPORTS] 90-day processing:",
+  Date.now() - processingStart,
+  "ms"
+);
     // Current streak
     let currentStreak = 0;
 
@@ -416,8 +439,8 @@ export async function GET(request: Request) {
         completedCount: d.completedCount,
         isAllCompleted: d.isAllCompleted,
         photoCount: d.items.filter(
-          (item) => item.imageUrl
-        ).length,
+  (item) => item.hasPhoto
+).length,
       }));
 
     return NextResponse.json({
