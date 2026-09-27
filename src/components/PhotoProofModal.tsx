@@ -44,18 +44,87 @@ export function PhotoProofModal({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          setSelectedImage(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const handleFileUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = e.target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    const imageUrl = URL.createObjectURL(file);
+
+    const img = new Image();
+
+    img.onload = () => {
+      const MAX_SIZE = 1600;
+
+      let width = img.naturalWidth;
+      let height = img.naturalHeight;
+
+      if (width > height && width > MAX_SIZE) {
+        height = Math.round(
+          (height * MAX_SIZE) / width
+        );
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width = Math.round(
+          (width * MAX_SIZE) / height
+        );
+        height = MAX_SIZE;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        URL.revokeObjectURL(imageUrl);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            URL.revokeObjectURL(imageUrl);
+            return;
+          }
+
+          const reader = new FileReader();
+
+          reader.onloadend = () => {
+            if (typeof reader.result === "string") {
+              setSelectedImage(reader.result);
+            }
+
+            URL.revokeObjectURL(imageUrl);
+          };
+
+          reader.readAsDataURL(blob);
+        },
+        "image/jpeg",
+        0.75
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(imageUrl);
+    };
+
+    img.src = imageUrl;
+  } catch (error) {
+    console.error(
+      "Failed to process proof image:",
+      error
+    );
+  } finally {
+    e.target.value = "";
+  }
+};
 
   const handleSubmit = async (includePhoto = true) => {
     setIsSubmitting(true);
@@ -155,7 +224,6 @@ export function PhotoProofModal({
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 className="hidden"
                 onChange={handleFileUpload}
               />

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { tasks, task_completions } from "@/db/schema";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/requireUser";
 import { getTodayString, getTomorrowString } from "@/lib/date-utils";
 
@@ -82,11 +82,11 @@ export async function GET(request: Request) {
   const completionsForDate =
       taskIds.length > 0
         ? await db
-            .select({
+           .select({
   id: task_completions.id,
   task_id: task_completions.task_id,
   date: task_completions.date,
-  image_url: task_completions.image_url,
+  has_photo: sql<boolean>`${task_completions.image_url} IS NOT NULL`,
   notes: task_completions.notes,
   completed_at: task_completions.completed_at,
 })
@@ -123,7 +123,9 @@ export async function GET(request: Request) {
           ...task,
           is_completed: !!comp,
           completion_id: comp?.id ?? null,
-          completion_image_url: null,
+          completion_image_url: comp?.has_photo
+  ? `/api/task-completions/${comp.id}/image`
+  : null,
           completion_notes: comp?.notes ?? null,
           completed_at: comp?.completed_at ?? null,
         };
@@ -147,11 +149,11 @@ export async function GET(request: Request) {
     const tomorrowCompletions =
       taskIds.length > 0
         ? await db
-           .select({
+          .select({
   id: task_completions.id,
   task_id: task_completions.task_id,
   date: task_completions.date,
-  image_url: task_completions.image_url,
+  has_photo: sql<boolean>`${task_completions.image_url} IS NOT NULL`,
   completed_at: task_completions.completed_at,
 })
 .from(task_completions)
@@ -188,8 +190,10 @@ export async function GET(request: Request) {
           ...task,
           is_completed: !!comp,
           completion_id: comp?.id ?? null,
-          completion_image_url: null,
-        };
+         completion_image_url: comp?.has_photo
+  ? `/api/task-completions/${comp.id}/image`
+  : null,
+            };
       });
 
    let allTasksWithStats: Array<

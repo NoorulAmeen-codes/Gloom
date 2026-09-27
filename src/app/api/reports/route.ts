@@ -171,6 +171,9 @@ export async function GET(request: Request) {
   requiresPhoto: t.requires_photo,
   isCompleted,
   hasPhoto: !!comp?.has_photo,
+  imageUrl: comp?.has_photo
+    ? `/api/task-completions/${comp.id}/image`
+    : null,
   notes: comp?.notes ?? null,
 };
       });
